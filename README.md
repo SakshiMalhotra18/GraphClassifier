@@ -10,9 +10,9 @@ This project presents a Convolutional Neural Network (CNN) that classifies forec
 
 ```
 ├── data.py                       # Script to generate synthetic training graphs
-├── Graph_Classifier_CNN_Cleaned.ipynb  # Jupyter Notebook containing full CNN model pipeline
+├── Graph_Classifier.ipynb  # Jupyter Notebook containing full CNN model pipeline
 ├── retail_store_inventory.csv   # Sample unrelated data (not used in model pipeline)
-├── graph_classifier_dataset_final/
+├── graph_classifier_dataset_final/ (this is generated using data.py)
 │   ├── good/                    # Graphs with low noise (high prediction quality)
 │   ├── passable/                # Graphs with moderate noise (acceptable quality)
 │   ├── bad/                     # Graphs with high noise (poor prediction quality)
