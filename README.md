@@ -1,131 +1,69 @@
-# GraphClassifier
+# 📊 Graph Quality Classifier AI
 
-# 🧠 Prediction Analyzer - Forecast Graph Classifier using CNN
+A high-end, production-ready system for classifying forecasting graphs into four categories: **Good**, **Passable**, **Bad**, and **None**. Using Deep Learning (MobileNetV2) and a modern Next.js dashboard.
 
-This project presents a Convolutional Neural Network (CNN) that classifies forecast graph images into four categories: `good`, `passable`, `bad`, and `none`. It includes automated dataset generation, model training via Jupyter Notebook, and guidelines to extend the dataset with new images.
+## ✨ Features
 
----
+- **Deep Learning Core**: Convolutional Neural Network trained on synthetic forecasting data.
+- **Interactive Dashboard**: Real-time graph generation and classification in the browser.
+- **High-End UI**: Premium glassmorphic design, dark mode, and smooth animations.
+- **Browser Inference**: Uses TensorFlow.js for lightning-fast, client-side classification.
 
-## 📂 Project Structure
-
-```
-├── data.py                       # Script to generate synthetic training graphs
-├── Graph_Classifier.ipynb  # Jupyter Notebook containing full CNN model pipeline
-├── retail_store_inventory.csv   # Sample unrelated data (not used in model pipeline)
-├── graph_classifier_dataset_final/ (this is generated using data.py)
-│   ├── good/                    # Graphs with low noise (high prediction quality)
-│   ├── passable/                # Graphs with moderate noise (acceptable quality)
-│   ├── bad/                     # Graphs with high noise (poor prediction quality)
-│   └── none/                    # Random/non-forecast visuals (e.g., pie, scatter)
-```
-
----
-
-## 🧪 Dataset Generation (`data.py`)
-
-Run `data.py` to generate a synthetic dataset categorized into four classes. Each class contains graph images created using `matplotlib`.
-
-* **Forecast-style graphs:** Sine-wave patterns with added noise
-* **Excel-style graphs:** Simulated monthly sales forecasts
-* **None graphs:** Pie, scatter, and other unrelated charts
-
-### ➕ Add More Graphs
-
-You can manually add new `.png` graph images to the relevant folders inside `graph_classifier_dataset_final/`:
+## 📁 Project Structure
 
 ```
-graph_classifier_dataset_final/
-    ├── good/        # Add new 'good' prediction graphs here
-    ├── passable/    # Add 'passable' ones here
-    ├── bad/         # Add poorly generated graphs here
-    └── none/        # Add irrelevant visuals here
+├── data/               # Dataset storage
+├── src/
+│   └── ml/
+│       ├── data_gen.py # Synthetic data generation logic
+│       ├── train.py    # Model training script
+│       ├── model.py    # CNN architecture definition
+│       └── convert.py  # TF.js conversion utility
+├── web/                # Next.js Web Dashboard
+├── models/             # Saved trained models (.h5)
+├── requirements.txt    # Python dependencies
+└── README.md
 ```
 
-Ensure added images are clear and meaningful. The model will train based on these.
+## 🚀 Quick Start
 
----
-
-## 🧠 Model Overview (`Graph_Classifier_CNN_Cleaned.ipynb`)
-
-This notebook covers:
-
-* Image preprocessing and dataset loading
-* CNN architecture creation using Keras
-* Model training and validation
-* Final evaluation and prediction examples
-
-⚠️ Before running, make sure `graph_classifier_dataset_final/` is in the working directory.
-
----
-
-## ⚙️ Usage Guide
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/SakshiMalhotra18/GraphClassifier.git
-cd GraphClassifier
-```
-
-2. Run dataset generator:
-
-```bash
-python data.py
-```
-
-3. Launch the notebook and train the model:
-
-```bash
-jupyter notebook Graph_Classifier.ipynb
-```
-
----
-
-## 📦 Dependencies
-
-Ensure Python 3.10+ is installed. Required libraries:
-
-```
-matplotlib
-numpy
-tensorflow
-scikit-learn
-Pillow
-jupyter
-```
-
-Install them with:
-
+### 1. Setup Environment
 ```bash
 pip install -r requirements.txt
 ```
 
-To generate `requirements.txt`:
-
+### 2. Generate Data & Train Model
 ```bash
-pip freeze > requirements.txt
+# Generate synthetic dataset
+python src/ml/data_gen.py
+
+# Train the CNN
+python src/ml/train.py --epochs 10
+
+# Convert for Web
+python src/ml/convert.py
 ```
 
+### 3. Launch Dashboard
+```bash
+cd web
+npm install
+npm run dev
+```
+
+## 🛠 Technology Stack
+
+- **ML Backend**: TensorFlow, Keras, NumPy, Matplotlib
+- **Web Frontend**: Next.js 14, React, Framer Motion, Recharts
+- **Web ML**: TensorFlow.js
+- **Design**: Vanilla CSS (Premium Custom Design)
+
+## 📈 Optimization Details
+
+- **Refactored Codebase**: Clean, modular Python structure with type hinting and CLI support.
+- **Enhanced Dataset**: Improved noise generation logic and diverse distractor types.
+- **Performance**: MobileNetV2 backbone ensures high accuracy with minimal computational overhead.
+- **Aesthetics**: Fully custom CSS design system optimized for first-glance "WOW" factor.
+
 ---
-
-## 📝 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🤝 Contributing
-
-You're welcome to fork this project and contribute! Open a pull request with improvements, new graphs, or model tweaks.
-
----
-
-## 📌 Notes
-
-* This is a synthetic ML project meant for prototyping or educational use.
-* Real-world extension would require domain-specific graphs and fine-tuned labeling.
-* The system is compatible with any tool that generates `.png` forecast visuals.
-
----
-
-Made with 💡 by Sakshi Malhotra
+Designed with ❤️ for SakshiMalhotra18.
