@@ -1,0 +1,13 @@
+# Ignore Python files to prevent Vercel from triggering the Python builder
+requirements.txt
+Graph_Classifier.ipynb
+graph_classifier_model.h5
+src/
+archive/
+graph_classifier_dataset_final/
+data/
+models/
+__pycache__/
+*.pyc
+*.h5
+*.keras
