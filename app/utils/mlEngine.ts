@@ -8,12 +8,10 @@ export interface DataPoint {
 
 export type Classification = 'good' | 'passable' | 'bad' | 'none';
 
-// Class labels order: 0: good, 1: passable, 2: bad, 3: none
 export const CLASSES: Classification[] = ['good', 'passable', 'bad', 'none'];
 
-/**
- * Generates single synthetic time-series dataset.
- */
+// ─── Synthetic Data Generation ───────────────────────────────────────
+
 export const generateSyntheticDataPoints = (noiseLevel: number, type: 'classic' | 'excel' | 'none'): DataPoint[] => {
   const length = 12;
   const data: DataPoint[] = [];
@@ -26,169 +24,125 @@ export const generateSyntheticDataPoints = (noiseLevel: number, type: 'classic' 
   }
 
   const baseTrend = [100, 110, 120, 135, 150, 140, 145, 160, 170, 180, 190, 200];
-  
+
   for (let i = 0; i < length; i++) {
-    // Add minor variation to the actual trend to make training diverse
     const actualNoise = (Math.random() - 0.5) * 6;
     const actualValue = baseTrend[i] + actualNoise;
-    
-    // Box-Muller transform for normal distribution
+
     const u1 = Math.random() || 0.0001;
     const u2 = Math.random() || 0.0001;
     const randStdNormal = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-    
+
     const noise = randStdNormal * noiseLevel;
     data.push({
       x: i,
       y: actualValue,
-      forecast: actualValue + noise
+      forecast: actualValue + noise,
     });
   }
   return data;
 };
 
-/**
- * Extracts statistical features from a time series data array.
- * Returns a 6-element feature vector normalized for training.
- */
+// ─── Feature Extraction ──────────────────────────────────────────────
+
 export const extractFeatures = (data: DataPoint[]): number[] => {
   const n = data.length;
   if (n === 0) return [0, 0, 0, 0, 0, 0];
 
-  const actuals = data.map(d => d.y);
+  const actuals = data.map((d) => d.y);
   const meanActual = actuals.reduce((a, b) => a + b, 0) / n;
-  
-  // Variance & Std of actuals
   const varActual = actuals.reduce((a, b) => a + Math.pow(b - meanActual, 2), 0) / n;
   const stdActual = Math.sqrt(varActual);
 
-  const hasForecast = data.every(d => d.forecast !== undefined) ? 1 : 0;
+  const hasForecast = data.every((d) => d.forecast !== undefined) ? 1 : 0;
 
   if (hasForecast === 0) {
-    // If no forecast, return feature vector indicating no forecast
     return [0, 2.0, 0.0, 2.0, stdActual / (meanActual || 1), 0.0];
   }
 
-  const forecasts = data.map(d => d.forecast!);
+  const forecasts = data.map((d) => d.forecast!);
   const meanForecast = forecasts.reduce((a, b) => a + b, 0) / n;
   const varForecast = forecasts.reduce((a, b) => a + Math.pow(b - meanForecast, 2), 0) / n;
   const stdForecast = Math.sqrt(varForecast);
 
-  // Residuals (noise)
-  const residuals = data.map(d => d.forecast! - d.y);
+  const residuals = data.map((d) => d.forecast! - d.y);
   const meanResidual = residuals.reduce((a, b) => a + b, 0) / n;
-  
-  // Standard deviation of residuals
-  const residualsDiffMean = residuals.map(r => r - meanResidual);
-  const varResidual = residualsDiffMean.reduce((a, b) => a + Math.pow(b, 2), 0) / n;
+  const varResidual = residuals.reduce((a, b) => a + Math.pow(b - meanResidual, 2), 0) / n;
   const stdResidual = Math.sqrt(varResidual);
 
-  // RMSE
   const mse = residuals.reduce((a, b) => a + b * b, 0) / n;
   const rmse = Math.sqrt(mse);
   const normRMSE = rmse / (meanActual || 1);
 
-  // Pearson Correlation Coefficient
   let cov = 0;
   for (let i = 0; i < n; i++) {
     cov += (actuals[i] - meanActual) * (forecasts[i] - meanForecast);
   }
   cov = cov / n;
-  const correlation = (stdActual > 0 && stdForecast > 0) ? cov / (stdActual * stdForecast) : 0;
+  const correlation = stdActual > 0 && stdForecast > 0 ? cov / (stdActual * stdForecast) : 0;
 
-  // Normalized features:
-  // [hasForecast, normRMSE, correlation, normResidualStd, normActualStd, normForecastStd]
   return [
     hasForecast,
-    Math.min(normRMSE, 5.0), // Cap normalized RMSE to prevent spikes
+    Math.min(normRMSE, 5.0),
     Math.max(-1.0, Math.min(1.0, correlation)),
     Math.min(stdResidual / (meanActual || 1), 5.0),
     Math.min(stdActual / (meanActual || 1), 5.0),
-    Math.min(stdForecast / (meanForecast || 1), 5.0)
+    Math.min(stdForecast / (meanForecast || 1), 5.0),
   ];
 };
 
-/**
- * Generates complete training dataset for the browser model.
- */
-export const generateTrainingSet = (sizePerClass: number = 100): { features: number[][], labels: number[][] } => {
+// ─── Training Dataset ────────────────────────────────────────────────
+
+export const generateTrainingSet = (sizePerClass: number = 100): { features: number[][]; labels: number[][] } => {
   const features: number[][] = [];
   const labels: number[][] = [];
 
-  // 1. Good: noiseLevel 1 to 8 (Standard error relative to actual is very small)
   for (let i = 0; i < sizePerClass; i++) {
     const noise = 1 + Math.random() * 7;
-    const pts = generateSyntheticDataPoints(noise, 'classic');
-    features.push(extractFeatures(pts));
+    features.push(extractFeatures(generateSyntheticDataPoints(noise, 'classic')));
     labels.push([1, 0, 0, 0]);
   }
 
-  // 2. Passable: noiseLevel 18 to 35
   for (let i = 0; i < sizePerClass; i++) {
     const noise = 18 + Math.random() * 17;
-    const pts = generateSyntheticDataPoints(noise, 'classic');
-    features.push(extractFeatures(pts));
+    features.push(extractFeatures(generateSyntheticDataPoints(noise, 'classic')));
     labels.push([0, 1, 0, 0]);
   }
 
-  // 3. Bad: noiseLevel 55 to 100
   for (let i = 0; i < sizePerClass; i++) {
     const noise = 55 + Math.random() * 45;
-    const pts = generateSyntheticDataPoints(noise, 'classic');
-    features.push(extractFeatures(pts));
+    features.push(extractFeatures(generateSyntheticDataPoints(noise, 'classic')));
     labels.push([0, 0, 1, 0]);
   }
 
-  // 4. None: type 'none' (distractor graphs without forecast)
   for (let i = 0; i < sizePerClass; i++) {
-    const pts = generateSyntheticDataPoints(0, 'none');
-    features.push(extractFeatures(pts));
+    features.push(extractFeatures(generateSyntheticDataPoints(0, 'none')));
     labels.push([0, 0, 0, 1]);
   }
 
   return { features, labels };
 };
 
-/**
- * Creates and compiles a sequential neural network model in TF.js.
- */
+// ─── Model Creation ──────────────────────────────────────────────────
+
 export const createModel = (learningRate: number = 0.01): tf.Sequential => {
   const model = tf.sequential();
-  
-  // Input: 6 features
-  model.add(tf.layers.dense({
-    inputShape: [6],
-    units: 16,
-    activation: 'relu',
-    kernelInitializer: 'varianceScaling'
-  }));
-  
-  // Hidden Layer
-  model.add(tf.layers.dense({
-    units: 8,
-    activation: 'relu',
-    kernelInitializer: 'varianceScaling'
-  }));
-  
-  // Output Layer: 4 classes (good, passable, bad, none)
-  model.add(tf.layers.dense({
-    units: 4,
-    activation: 'softmax',
-    kernelInitializer: 'varianceScaling'
-  }));
+
+  model.add(tf.layers.dense({ inputShape: [6], units: 16, activation: 'relu', kernelInitializer: 'varianceScaling' }));
+  model.add(tf.layers.dense({ units: 8, activation: 'relu', kernelInitializer: 'varianceScaling' }));
+  model.add(tf.layers.dense({ units: 4, activation: 'softmax', kernelInitializer: 'varianceScaling' }));
 
   model.compile({
     optimizer: tf.train.adam(learningRate),
     loss: 'categoricalCrossentropy',
-    metrics: ['accuracy']
+    metrics: ['accuracy'],
   });
 
   return model;
 };
 
-/**
- * Trains the model with custom progress callback.
- */
+// ─── Model Training ──────────────────────────────────────────────────
+
 export const trainModel = async (
   model: tf.Sequential,
   features: number[][],
@@ -197,7 +151,6 @@ export const trainModel = async (
   batchSize: number = 32,
   onEpochEnd: (epoch: number, logs: any) => void
 ): Promise<tf.History> => {
-  // Convert arrays to tensors
   const xs = tf.tensor2d(features);
   const ys = tf.tensor2d(labels);
 
@@ -208,44 +161,37 @@ export const trainModel = async (
     validationSplit: 0.15,
     callbacks: {
       onEpochEnd: (epoch, logs) => {
-        if (logs) {
-          onEpochEnd(epoch + 1, logs);
-        }
-      }
-    }
+        if (logs) onEpochEnd(epoch + 1, logs);
+      },
+    },
   });
 
-  // Clean up tensors from memory
   xs.dispose();
   ys.dispose();
 
   return history;
 };
 
-/**
- * Runs predictions on given data series.
- */
-export const predict = (model: tf.Sequential, data: DataPoint[]): {
+// ─── Prediction ──────────────────────────────────────────────────────
+
+export interface PredictionResult {
   label: Classification;
   confidence: number;
   probabilities: { [key in Classification]: number };
-  metrics: {
-    mape: number;
-    rmse: number;
-    correlation: number;
-    noiseRatio: number;
-  };
-} => {
+  metrics: { mape: number; rmse: number; correlation: number; noiseRatio: number };
+  inferenceTimeMs: number;
+}
+
+export const predict = (model: tf.Sequential, data: DataPoint[]): PredictionResult => {
+  const t0 = performance.now();
   const features = extractFeatures(data);
   const inputTensor = tf.tensor2d([features]);
-  
   const outputTensor = model.predict(inputTensor) as tf.Tensor;
   const probabilitiesArray = outputTensor.dataSync();
-  
   inputTensor.dispose();
   outputTensor.dispose();
+  const inferenceTimeMs = performance.now() - t0;
 
-  // Find class with highest probability
   let maxIdx = 0;
   let maxVal = 0;
   for (let i = 0; i < probabilitiesArray.length; i++) {
@@ -255,154 +201,153 @@ export const predict = (model: tf.Sequential, data: DataPoint[]): {
     }
   }
 
-  const label = CLASSES[maxIdx];
-  const confidence = maxVal;
-
-  const probabilities = {
-    good: probabilitiesArray[0],
-    passable: probabilitiesArray[1],
-    bad: probabilitiesArray[2],
-    none: probabilitiesArray[3]
-  };
-
-  // Compute stats for audit metrics
-  const n = data.length;
-  let mape = 0;
-  let rmse = 0;
-  let correlation = 0;
-  let noiseRatio = 0;
-
-  if (n > 0) {
-    const actuals = data.map(d => d.y);
-    const meanActual = actuals.reduce((a, b) => a + b, 0) / n;
-    
-    if (data.every(d => d.forecast !== undefined)) {
-      const forecasts = data.map(d => d.forecast!);
-      const residuals = data.map(d => d.forecast! - d.y);
-      
-      const mse = residuals.reduce((a, b) => a + b * b, 0) / n;
-      rmse = Math.sqrt(mse);
-      
-      let absPercentageSum = 0;
-      for (let i = 0; i < n; i++) {
-        absPercentageSum += Math.abs(residuals[i]) / (actuals[i] || 1);
-      }
-      mape = (absPercentageSum / n) * 100;
-      
-      // Std devs
-      const varActual = actuals.reduce((a, b) => a + Math.pow(b - meanActual, 2), 0) / n;
-      const stdActual = Math.sqrt(varActual);
-      
-      const meanForecast = forecasts.reduce((a, b) => a + b, 0) / n;
-      const varForecast = forecasts.reduce((a, b) => a + Math.pow(b - meanForecast, 2), 0) / n;
-      const stdForecast = Math.sqrt(varForecast);
-
-      let cov = 0;
-      for (let i = 0; i < n; i++) {
-        cov += (actuals[i] - meanActual) * (forecasts[i] - meanForecast);
-      }
-      cov = cov / n;
-      correlation = (stdActual > 0 && stdForecast > 0) ? cov / (stdActual * stdForecast) : 0;
-      
-      const meanResidual = residuals.reduce((a, b) => a + b, 0) / n;
-      const varResidual = residuals.reduce((a, b) => a + Math.pow(b - meanResidual, 2), 0) / n;
-      const stdResidual = Math.sqrt(varResidual);
-      
-      noiseRatio = (stdResidual / (stdActual || 1)) * 100;
-    }
-  }
+  const metrics = computeMetrics(data);
 
   return {
-    label,
-    confidence,
-    probabilities,
-    metrics: {
-      mape,
-      rmse,
-      correlation,
-      noiseRatio
-    }
+    label: CLASSES[maxIdx],
+    confidence: maxVal,
+    probabilities: { good: probabilitiesArray[0], passable: probabilitiesArray[1], bad: probabilitiesArray[2], none: probabilitiesArray[3] },
+    metrics,
+    inferenceTimeMs,
   };
 };
 
-/**
- * Falling back to a simple rule-based model if TFJS is not loaded or training is skipped.
- */
-export const predictHeuristic = (data: DataPoint[]): ReturnType<typeof predict> => {
-  const n = data.length;
-  let mape = 0;
-  let rmse = 0;
-  let correlation = 0;
-  let noiseRatio = 0;
+export const predictHeuristic = (data: DataPoint[]): PredictionResult => {
+  const t0 = performance.now();
+  const metrics = computeMetrics(data);
   let label: Classification = 'none';
 
-  if (n > 0) {
-    const actuals = data.map(d => d.y);
-    const meanActual = actuals.reduce((a, b) => a + b, 0) / n;
-    const hasForecast = data.every(d => d.forecast !== undefined);
-
-    if (hasForecast) {
-      const forecasts = data.map(d => d.forecast!);
-      const residuals = data.map(d => d.forecast! - d.y);
-      const mse = residuals.reduce((a, b) => a + b * b, 0) / n;
-      rmse = Math.sqrt(mse);
-      
-      let absPercentageSum = 0;
-      for (let i = 0; i < n; i++) {
-        absPercentageSum += Math.abs(residuals[i]) / (actuals[i] || 1);
-      }
-      mape = (absPercentageSum / n) * 100;
-      
-      const varActual = actuals.reduce((a, b) => a + Math.pow(b - meanActual, 2), 0) / n;
-      const stdActual = Math.sqrt(varActual);
-      
-      const meanForecast = forecasts.reduce((a, b) => a + b, 0) / n;
-      const varForecast = forecasts.reduce((a, b) => a + Math.pow(b - meanForecast, 2), 0) / n;
-      const stdForecast = Math.sqrt(varForecast);
-
-      let cov = 0;
-      for (let i = 0; i < n; i++) {
-        cov += (actuals[i] - meanActual) * (forecasts[i] - meanForecast);
-      }
-      cov = cov / n;
-      correlation = (stdActual > 0 && stdForecast > 0) ? cov / (stdActual * stdForecast) : 0;
-      
-      const meanResidual = residuals.reduce((a, b) => a + b, 0) / n;
-      const varResidual = residuals.reduce((a, b) => a + Math.pow(b - meanResidual, 2), 0) / n;
-      const stdResidual = Math.sqrt(varResidual);
-      
-      noiseRatio = (stdResidual / (stdActual || 1)) * 100;
-
-      // Classify based on noiseRatio
-      if (noiseRatio < 15) {
-        label = 'good';
-      } else if (noiseRatio < 45) {
-        label = 'passable';
-      } else {
-        label = 'bad';
-      }
-    } else {
-      label = 'none';
-    }
+  if (data.length > 0 && data.every((d) => d.forecast !== undefined)) {
+    if (metrics.noiseRatio < 15) label = 'good';
+    else if (metrics.noiseRatio < 45) label = 'passable';
+    else label = 'bad';
   }
 
-  // Generate simulated probabilities based on the output
   const probabilities = {
     good: label === 'good' ? 0.95 : label === 'passable' ? 0.04 : 0.01,
     passable: label === 'passable' ? 0.92 : label === 'good' ? 0.05 : 0.03,
-    bad: label === 'bad' ? 0.98 : label === 'passable' ? 0.02 : 0.00,
-    none: label === 'none' ? 1.00 : 0.00
+    bad: label === 'bad' ? 0.98 : label === 'passable' ? 0.02 : 0.0,
+    none: label === 'none' ? 1.0 : 0.0,
   };
 
   return {
     label,
     confidence: probabilities[label],
     probabilities,
-    metrics: {
-      mape,
-      rmse,
-      correlation,
-      noiseRatio
-    }
+    metrics,
+    inferenceTimeMs: performance.now() - t0,
   };
+};
+
+// ─── Shared Metric Computation ───────────────────────────────────────
+
+function computeMetrics(data: DataPoint[]) {
+  const n = data.length;
+  let mape = 0, rmse = 0, correlation = 0, noiseRatio = 0;
+
+  if (n > 0) {
+    const actuals = data.map((d) => d.y);
+    const meanActual = actuals.reduce((a, b) => a + b, 0) / n;
+
+    if (data.every((d) => d.forecast !== undefined)) {
+      const forecasts = data.map((d) => d.forecast!);
+      const residuals = data.map((d) => d.forecast! - d.y);
+      const mse = residuals.reduce((a, b) => a + b * b, 0) / n;
+      rmse = Math.sqrt(mse);
+
+      let absPercentageSum = 0;
+      for (let i = 0; i < n; i++) absPercentageSum += Math.abs(residuals[i]) / (actuals[i] || 1);
+      mape = (absPercentageSum / n) * 100;
+
+      const varActual = actuals.reduce((a, b) => a + Math.pow(b - meanActual, 2), 0) / n;
+      const stdActual = Math.sqrt(varActual);
+      const meanForecast = forecasts.reduce((a, b) => a + b, 0) / n;
+      const varForecast = forecasts.reduce((a, b) => a + Math.pow(b - meanForecast, 2), 0) / n;
+      const stdForecast = Math.sqrt(varForecast);
+
+      let cov = 0;
+      for (let i = 0; i < n; i++) cov += (actuals[i] - meanActual) * (forecasts[i] - meanForecast);
+      cov /= n;
+      correlation = stdActual > 0 && stdForecast > 0 ? cov / (stdActual * stdForecast) : 0;
+
+      const meanResidual = residuals.reduce((a, b) => a + b, 0) / n;
+      const varResidual = residuals.reduce((a, b) => a + Math.pow(b - meanResidual, 2), 0) / n;
+      noiseRatio = (Math.sqrt(varResidual) / (stdActual || 1)) * 100;
+    }
+  }
+
+  return { mape, rmse, correlation, noiseRatio };
+}
+
+// ─── IndexedDB Model Caching ─────────────────────────────────────────
+
+const MODEL_KEY = 'indexeddb://graph-classifier-v1';
+
+export const saveModelToCache = async (model: tf.Sequential): Promise<void> => {
+  try {
+    await model.save(MODEL_KEY);
+  } catch (e) {
+    console.warn('Failed to cache model to IndexedDB:', e);
+  }
+};
+
+export const loadModelFromCache = async (): Promise<tf.Sequential | null> => {
+  try {
+    const model = (await tf.loadLayersModel(MODEL_KEY)) as tf.Sequential;
+    model.compile({
+      optimizer: tf.train.adam(0.01),
+      loss: 'categoricalCrossentropy',
+      metrics: ['accuracy'],
+    });
+    return model;
+  } catch {
+    return null;
+  }
+};
+
+export const hasCachedModel = async (): Promise<boolean> => {
+  try {
+    const models = await tf.io.listModels();
+    return MODEL_KEY in models;
+  } catch {
+    return false;
+  }
+};
+
+// ─── Classification Explanation Generator ────────────────────────────
+
+export const getClassificationExplanation = (pred: PredictionResult): string => {
+  if (pred.label === 'none') {
+    return 'No forecast series detected. The input appears to be a standalone visualization (e.g., bar chart, scatter plot, or blank report) without an actual-vs-forecast comparison structure.';
+  }
+
+  const parts: string[] = [];
+  const { mape, correlation, noiseRatio } = pred.metrics;
+
+  // MAPE insight
+  if (mape > 0) {
+    if (mape < 5) parts.push(`very low mean absolute percentage error (${mape.toFixed(1)}%), indicating high accuracy`);
+    else if (mape < 15) parts.push(`moderate MAPE of ${mape.toFixed(1)}%, acceptable for general use cases`);
+    else parts.push(`elevated MAPE of ${mape.toFixed(1)}%, suggesting significant forecast deviation`);
+  }
+
+  // Correlation insight
+  if (correlation > 0.95) parts.push(`strong positive correlation (r = ${correlation.toFixed(3)}) — forecast closely tracks actuals`);
+  else if (correlation > 0.8) parts.push(`moderate correlation (r = ${correlation.toFixed(3)}) — directional agreement present but with drift`);
+  else if (correlation > 0.5) parts.push(`weak correlation (r = ${correlation.toFixed(3)}) — limited directional agreement`);
+  else parts.push(`very weak or negative correlation (r = ${correlation.toFixed(3)}) — forecasts do not track actuals`);
+
+  // Noise insight
+  if (noiseRatio < 15) parts.push(`low residual noise floor (${noiseRatio.toFixed(1)}%)`);
+  else if (noiseRatio < 45) parts.push(`moderate noise detected (${noiseRatio.toFixed(1)}%), manual review advisable`);
+  else parts.push(`high noise floor (${noiseRatio.toFixed(1)}%), forecast reliability is compromised`);
+
+  const verdict =
+    pred.label === 'good'
+      ? 'Forecast meets quality thresholds for automated pipeline use.'
+      : pred.label === 'passable'
+        ? 'Forecast is borderline — consider manual validation before production dispatch.'
+        : 'Forecast quality is below acceptable thresholds. Retrain or recalibrate the upstream model.';
+
+  return `Detected ${parts.join('; ')}. ${verdict}`;
 };

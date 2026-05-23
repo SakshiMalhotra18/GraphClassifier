@@ -4,17 +4,34 @@
   --bg-dark: #090d16;
   --card-bg: rgba(17, 24, 39, 0.7);
   --text-main: #f8fafc;
-  --text-muted: #64748b;
+  --text-muted: #94a3b8;
   --glass-border: rgba(255, 255, 255, 0.08);
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+  --card-border-hover: rgba(99, 102, 241, 0.2);
+  --card-shadow-hover: rgba(99, 102, 241, 0.15);
+  --chart-grid: #1e293b;
+  --stat-value: #f8fafc;
+}
+
+.light {
+  --bg-dark: #f1f5f9;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --card-border-hover: rgba(99, 102, 241, 0.3);
+  --card-shadow-hover: rgba(99, 102, 241, 0.1);
+  --chart-grid: #e2e8f0;
+  --stat-value: #0f172a;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 body {
@@ -31,14 +48,14 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.1);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(148, 163, 184, 0.5);
 }
 
 .glass-card {
@@ -46,17 +63,23 @@ body {
   backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: 1rem;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
 }
 
 .glass-card:hover {
-  border-color: rgba(99, 102, 241, 0.2);
-  box-shadow: 0 12px 35px -10px rgba(99, 102, 241, 0.15);
+  border-color: var(--card-border-hover);
+  box-shadow: 0 12px 35px -10px var(--card-shadow-hover);
 }
 
 .gradient-text {
   background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 50%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light .gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -105,14 +128,18 @@ header {
   gap: 2rem;
 }
 
-@media (max-width: 968px) {
+@media (max-width: 768px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
   header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: column !important;
+    align-items: flex-start !important;
     gap: 1rem;
+  }
+  .nav-tabs {
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 }
 
@@ -151,14 +178,14 @@ header {
 
 /* Tabs styles styling */
 .tab-btn:hover {
-  color: white !important;
-  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text-main) !important;
+  background: rgba(99, 102, 241, 0.05) !important;
 }
 
 /* Slider Custom Styling */
 input[type="range"] {
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 3px;
   outline: none;
   -webkit-appearance: none;
@@ -177,4 +204,61 @@ input[type="range"]::-webkit-slider-thumb {
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
+}
+
+/* Skeleton Loading styles */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+.light .skeleton {
+  background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.05) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Simple tooltips */
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: #1e293b;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 12px;
+  position: absolute;
+  z-index: 50;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
