@@ -1,69 +1,67 @@
 # 📊 Graph Quality Classifier AI
 
-A high-end, production-ready system for classifying forecasting graphs into four categories: **Good**, **Passable**, **Bad**, and **None**. Using Deep Learning (MobileNetV2) and a modern Next.js dashboard.
+A high-end, production-ready system for classifying forecasting graphs into four categories: **Good**, **Passable**, **Bad**, and **None**. Using Deep Learning (MobileNetV2) and a modern Next.js dashboard running **entirely in the browser** via **TensorFlow.js**.
 
 ## ✨ Features
 
-- **Deep Learning Core**: Convolutional Neural Network trained on synthetic forecasting data.
-- **Interactive Dashboard**: Real-time graph generation and classification in the browser.
-- **High-End UI**: Premium glassmorphic design, dark mode, and smooth animations.
-- **Browser Inference**: Uses TensorFlow.js for lightning-fast, client-side classification.
+- **Client-Side Neural Network**: Built using TensorFlow.js to train and run predictions directly in the browser with 0ms server latency.
+- **Interactive Playground**: Sliders to adjust Noise Level, Seasonality Amplitude, Trend Slope, and Outlier Spikes, with live Recharts updates and real-time classification probability bars.
+- **CSV Forecast Auditor**: Drag-and-drop forecast sheet auditor. Displays parsed columns and runs the neural network to output MAPE, correlation coefficients, and structural anomalies.
+- **Visual Chart Inspector**: Canvas-based computer vision image scanner. Upload static chart screenshots and run scans with custom edge-variance analysis.
+- **ML Training Center**: Hyperparameter customization (Epochs, Learning Rate, Batch Size) with a real-time updating loss and accuracy area chart and retro terminal logs.
+- **Modern Glassmorphic Design**: Curated dark HSL color palette, glowing indicators, animated cards, and responsive layouts.
 
-## 📁 Project Structure
+## 📁 Consolidated Project Structure
+
+The project has been optimized to make the Next.js web application the root-level project, enabling zero-config Vercel deployments.
 
 ```
-├── data/               # Dataset storage
-├── src/
-│   └── ml/
-│       ├── data_gen.py # Synthetic data generation logic
-│       ├── train.py    # Model training script
-│       ├── model.py    # CNN architecture definition
-│       └── convert.py  # TF.js conversion utility
-├── web/                # Next.js Web Dashboard
-├── models/             # Saved trained models (.h5)
-├── requirements.txt    # Python dependencies
+├── app/                  # Next.js App Router (React components & routes)
+│   ├── utils/
+│   │   └── mlEngine.ts   # TensorFlow.js browser-based training & inference engine
+│   ├── globals.css       # Custom HSL design variables and micro-animations
+│   ├── layout.tsx        # HTML structure and Google Fonts
+│   └── page.tsx          # Dashboard page implementing all interactive tabs
+├── public/               # Static assets & public resources
+├── src/ml/               # [Archived] Python-based dataset & CNN training scripts
+├── next.config.ts        # Next.js compiler settings
+├── tsconfig.json         # TypeScript compiler configurations
+├── package.json          # Unified Node dependencies (TF.js, Framer Motion, Recharts)
 └── README.md
 ```
 
-## 🚀 Quick Start
+## 🚀 Local Setup & Quick Start
 
-### 1. Setup Environment
+### 1. Install Node Dependencies
+Initialize node packages at the root directory:
 ```bash
-pip install -r requirements.txt
-```
-
-### 2. Generate Data & Train Model
-```bash
-# Generate synthetic dataset
-python src/ml/data_gen.py
-
-# Train the CNN
-python src/ml/train.py --epochs 10
-
-# Convert for Web
-python src/ml/convert.py
-```
-
-### 3. Launch Dashboard
-```bash
-cd web
 npm install
+```
+
+### 2. Run the Development Server
+Launch the local Next.js development server:
+```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-## 🛠 Technology Stack
+### 3. Production Build
+Verify standard production-ready static generation:
+```bash
+npm run build
+```
 
-- **ML Backend**: TensorFlow, Keras, NumPy, Matplotlib
-- **Web Frontend**: Next.js 14, React, Framer Motion, Recharts
-- **Web ML**: TensorFlow.js
-- **Design**: Vanilla CSS (Premium Custom Design)
+---
 
-## 📈 Optimization Details
+## ⚡ Vercel Deployment Guide
 
-- **Refactored Codebase**: Clean, modular Python structure with type hinting and CLI support.
-- **Enhanced Dataset**: Improved noise generation logic and diverse distractor types.
-- **Performance**: MobileNetV2 backbone ensures high accuracy with minimal computational overhead.
-- **Aesthetics**: Fully custom CSS design system optimized for first-glance "WOW" factor.
+Because the app is located at the root of the repository and is a standard Next.js application, deployment to Vercel is extremely straightforward:
+
+1. Push your updated codebase to a **GitHub repository** (e.g., `https://github.com/SakshiMalhotra18/GraphClassifier`).
+2. Log into your **Vercel Dashboard** and click **Add New Project**.
+3. Import the `GraphClassifier` repository.
+4. Vercel will automatically detect **Next.js** as the framework.
+5. Click **Deploy** without modifying any setting. It will compile and publish the live URL in under 2 minutes!
 
 ---
 Designed with ❤️ for SakshiMalhotra18.
